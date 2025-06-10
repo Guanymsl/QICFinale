@@ -13,7 +13,7 @@ from qiskit_aer import Aer
 from qiskit import transpile
 from qiskit_aer import QasmSimulator
 from math import pi
-from qiskit import *  
+from qiskit import *
 import tensorflow as tf
 from qutip import *
 from sklearn.decomposition import PCA
@@ -34,8 +34,8 @@ print("Finish import packages")
 # --------------------------------------------------
 # The following section we prepare the MNIST dataset
 # and normalize the dataset to be in the bound 0-1
-# Following this, the data is transformed using the 
-# PCA algorithm down to k dimensions 
+# Following this, the data is transformed using the
+# PCA algorithm down to k dimensions
 # --------------------------------------------------
 test_images,test_labels = tf.keras.datasets.mnist.load_data()
 # test_images: 60000 * 28 * 28 # test_labels: 60000 * .
@@ -199,7 +199,7 @@ def update_weights(init_value,lr,grad):
 # ------------------------------------------------------------------------------------
 # THIS SECTION IS FOR THE ONLINE GENERATION OF QUANTUM CIRCUITS
 
-q = 5
+q = 7
 c = 1
 layer_style = "Controlled-Dual"
 train_var = init_random_variables(q-1,layer_style) # all are random rotation angles
@@ -277,12 +277,12 @@ def kl_divergence(p_dist, q_dist):
     kldiv = 0
     for p_point,q_point in zip(p,q):
         kldiv += (np.sqrt(p_point) - np.sqrt(q_point))**2
-    kldiv = (1/np.sqrt(2))*kldiv**0.5 
+    kldiv = (1/np.sqrt(2))*kldiv**0.5
     return kldiv
-    #return sum(p[i] * log2(p[i]/q[i]) for i in range(len(p)))  # ?... are we confident in this... 
+    #return sum(p[i] * log2(p[i]/q[i]) for i in range(len(p)))  # ?... are we confident in this...
 
 #================================================================================
-    
+
 # Checkpointing code
 def save_variables(var_dict,epoch):
     with open(f"Epoch-{epoch}-Variables-numbers-10",'w') as file:
@@ -383,8 +383,8 @@ for epoch in np.arange(1,100):
     par_shift = 0.5*np.pi*np.sqrt(1/(epoch+1))
     # ------------------------------------------------------------------------------------------
     # This section is the discriminator training section
-    # Each data point is tested against a random number, of which it decidesa wheter to 
-    # Train against discerning between fake or real 
+    # Each data point is tested against a random number, of which it decidesa wheter to
+    # Train against discerning between fake or real
     # This causes "unstable" loss functions, but not very "unstable". Just slightly inconsistent
     # ------------------------------------------------------------------------------------------
     counter = 0
@@ -427,7 +427,7 @@ for epoch in np.arange(1,100):
     loss_g = [0,0]
     # ------------------------------------------------------------------------------------------
     # This section is the generator training section
-    # The discriminator just looks to fool the state we learnt above 
+    # The discriminator just looks to fool the state we learnt above
     # This means that instead of learning 10000 times, we could up the learning rate and just learn a few more times
     # We dont want it to be too large so it spins around the qubits state
     # ------------------------------------------------------------------------------------------
@@ -438,7 +438,7 @@ for epoch in np.arange(1,100):
             if str(q//2 + 1) not in key and gen_params:
                 #print(f"{key} is not a GAN parameter")
                 continue
-            else: 
+            else:
                 gen_params = False
             for key_value in range(len(value)):
                 #TRAIN ON FAKE DATA
@@ -453,7 +453,7 @@ for epoch in np.arange(1,100):
     # tracked_g_loss record the "AVERAGE" generator loss
     tracked_g_loss.append(loss_g[0]/loss_g[1])
 
-    loss_qgan = cost_function(get_probabilities(disc_fake_training_circuit(train_var,key,key_value,par_shift,diff=False,fwd_diff=False)),1,None) 
+    loss_qgan = cost_function(get_probabilities(disc_fake_training_circuit(train_var,key,key_value,par_shift,diff=False,fwd_diff=False)),1,None)
     t_loss = loss_qgan + (loss[0]/loss[1])
     tracked_loss_d_to_real.append(loss[0]/loss[1])
     tracked_loss_d_to_g.append(loss_qgan)
