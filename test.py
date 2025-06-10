@@ -199,7 +199,7 @@ def update_weights(init_value,lr,grad):
 # ------------------------------------------------------------------------------------
 # THIS SECTION IS FOR THE ONLINE GENERATION OF QUANTUM CIRCUITS
 
-q = 7
+q = 9
 c = 1
 layer_style = "Controlled-Dual"
 train_var = init_random_variables(q-1,layer_style) # all are random rotation angles
