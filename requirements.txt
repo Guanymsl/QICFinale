@@ -7,4 +7,5 @@ tensorflow
 qutip
 pandas
 qiskit-aer
+qiskit-aer-gpu
 tqdm

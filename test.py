@@ -9,7 +9,7 @@ from qiskit import QuantumRegister
 from qiskit import QuantumCircuit
 from pprint import pprint
 #from qiskit import Aer, execute : for IBM
-from qiskit_aer import Aer
+from qiskit_aer import AerSimulator
 from qiskit import transpile
 from qiskit_aer import QasmSimulator
 from math import pi
@@ -27,7 +27,7 @@ import matplotlib.patheffects as PathEffects
 
 # Set this to the backend you are choosing for qiskit.
 # For real IBMQ Evaluation, use a provider
-backend = Aer.get_backend('qasm_simulator')
+backend = AerSimulator(method='statevector', device='GPU')
 
 print("Finish import packages")
 
@@ -402,7 +402,7 @@ for epoch in np.arange(1,100):
                 if abs(df)>1:
                     df = df/abs(df)
                 # update train varaiable
-                train_var[key][key_value] -= df*learning_rate/10
+                #train_var[key][key_value] -= df*learning_rate/10
     print("Finish discriminator training on fake data")
     for index,point in tqdm(enumerate(pca_data_rot), total=len(pca_data_rot), desc="Training discriminator"):
         #print(index, point)
@@ -498,6 +498,8 @@ for epoch in np.arange(1,100):
     print(tracked_kl_div_1)
 
     # For accurate KL Div we need to usue higher shots
+    circ = disc_fake_training_circuit(train_var,point,key,key_value,par_shift,Sample=True)
+    new_circ = transpile(circ, backend)
     data = []
     for _ in range(16):
         job = backend.run(new_circ, shots=20)
