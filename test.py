@@ -9,7 +9,7 @@ from qiskit import QuantumRegister
 from qiskit import QuantumCircuit
 from pprint import pprint
 #from qiskit import Aer, execute : for IBM
-from qiskit_aer import AerSimulator
+from qiskit_aer import Aer
 from qiskit import transpile
 from qiskit_aer import QasmSimulator
 from math import pi
@@ -27,7 +27,7 @@ import matplotlib.patheffects as PathEffects
 
 # Set this to the backend you are choosing for qiskit.
 # For real IBMQ Evaluation, use a provider
-backend = AerSimulator(method='statevector', device='GPU')
+backend = Aer.get_backend('qasm_simulator')
 
 print("Finish import packages")
 
@@ -46,69 +46,6 @@ train_images = test_images[0].reshape(60000,784) # turn to 1-D array
 train_labels = test_images[1]
 labels = test_images[1]
 train_images = train_images/255 # normalization
-
-# --------------------------------------------------
-# ---------------- PCA Section ---------------------
-# --------------------------------------------------
-
-k=2 # = q // 2, q = total quantum bits
-
-pca = PCA(n_components=k)
-pca.fit(train_images)
-pca_data = pca.transform(train_images)[:10000]
-pprint(pca_data)
-print(pca_data.shape)
-
-train_labels = train_labels[:10000]
-t_pca_data = pca_data.copy()
-
-# store the parameters of descaling process
-pca_descaler = [[] for _ in range(k)]
-
-# to apply scaling s.t. each entry falls in 0 to 1
-for i in range(k):
-    pca_descaler[i].append(pca_data[:,i].min())
-    if pca_data[:,i].min() < 0:
-        pca_data[:,i] += np.abs(pca_data[:,i].min())
-    else:
-        pca_data[:,i] -= pca_data[:,i].min()
-    pca_descaler[i].append(pca_data[:,i].max())
-    pca_data[:,i] /= pca_data[:,i].max()
-
-# --------------------------------------------------
-# -----  Transform PCA data to rotations ----------
-# --------------------------------------------------
-
-# the rotation angle = 2 * sin^-1 (entry^2)
-# Compute rotation angles from PCA data
-pca_data_rot = 2 * np.arcsin(np.sqrt(pca_data))
-print(pca_data_rot.shape)
-
-# Select data where label is 9 or 3
-valid_mask = (train_labels == 7)
-print(valid_mask)
-
-# Apply the mask to PCA data
-pca_data_rot = pca_data_rot[valid_mask]
-print(pca_data_rot.shape)
-pca_data = pca_data[valid_mask]
-
-# Optional: also filter labels if you need them
-valid_labels = train_labels[valid_mask]
-print(valid_labels)
-
-# Print explained variance
-print(f"The Total Explained Variance of {k} Dimensions is {sum(pca.explained_variance_ratio_).round(3)}")
-
-# --------------------------------------------------
-# Define a function that can take in PCA'ed data and return an image
-# --------------------------------------------------
-def descale_points(d_point,scales=pca_descaler,tfrm=pca):
-    for col in range(d_point.shape[1]):
-        d_point[:,col] *= scales[col][1]
-        d_point[:,col] += scales[col][0]
-    reconstruction = tfrm.inverse_transform(d_point)
-    return reconstruction
 
 # Qubits Encoding 1 Dimension of Data
 #All functions needed for the functionality of the circuit simulation
@@ -361,6 +298,68 @@ circ.h(0)
 #c = 1
 #layer_style = "Controlled-Dual"
 #train_var = init_random_variables(q-1,layer_style) # all are random rotation angles
+# --------------------------------------------------
+# ---------------- PCA Section ---------------------
+# --------------------------------------------------
+
+k=q//2 # = q // 2, q = total quantum bits
+
+pca = PCA(n_components=k)
+pca.fit(train_images)
+pca_data = pca.transform(train_images)[:10000]
+pprint(pca_data)
+print(pca_data.shape)
+
+train_labels = train_labels[:10000]
+t_pca_data = pca_data.copy()
+
+# store the parameters of descaling process
+pca_descaler = [[] for _ in range(k)]
+
+# to apply scaling s.t. each entry falls in 0 to 1
+for i in range(k):
+    pca_descaler[i].append(pca_data[:,i].min())
+    if pca_data[:,i].min() < 0:
+        pca_data[:,i] += np.abs(pca_data[:,i].min())
+    else:
+        pca_data[:,i] -= pca_data[:,i].min()
+    pca_descaler[i].append(pca_data[:,i].max())
+    pca_data[:,i] /= pca_data[:,i].max()
+
+# --------------------------------------------------
+# -----  Transform PCA data to rotations ----------
+# --------------------------------------------------
+
+# the rotation angle = 2 * sin^-1 (entry^2)
+# Compute rotation angles from PCA data
+pca_data_rot = 2 * np.arcsin(np.sqrt(pca_data))
+print(pca_data_rot.shape)
+
+# Select data where label is 9 or 3
+valid_mask = (train_labels == 7)
+print(valid_mask)
+
+# Apply the mask to PCA data
+pca_data_rot = pca_data_rot[valid_mask]
+print(pca_data_rot.shape)
+pca_data = pca_data[valid_mask]
+
+# Optional: also filter labels if you need them
+valid_labels = train_labels[valid_mask]
+print(valid_labels)
+
+# Print explained variance
+print(f"The Total Explained Variance of {k} Dimensions is {sum(pca.explained_variance_ratio_).round(3)}")
+
+# --------------------------------------------------
+# Define a function that can take in PCA'ed data and return an image
+# --------------------------------------------------
+def descale_points(d_point,scales=pca_descaler,tfrm=pca):
+    for col in range(d_point.shape[1]):
+        d_point[:,col] *= scales[col][1]
+        d_point[:,col] += scales[col][0]
+    reconstruction = tfrm.inverse_transform(d_point)
+    return reconstruction
 
 # Initial Learning Settings such as alpha etc.
 tracked_d_loss = []
@@ -402,7 +401,7 @@ for epoch in np.arange(1,100):
                 if abs(df)>1:
                     df = df/abs(df)
                 # update train varaiable
-                #train_var[key][key_value] -= df*learning_rate/10
+                train_var[key][key_value] -= df*learning_rate/10
     print("Finish discriminator training on fake data")
     for index,point in tqdm(enumerate(pca_data_rot), total=len(pca_data_rot), desc="Training discriminator"):
         #print(index, point)
@@ -498,8 +497,6 @@ for epoch in np.arange(1,100):
     print(tracked_kl_div_1)
 
     # For accurate KL Div we need to usue higher shots
-    circ = disc_fake_training_circuit(train_var,point,key,key_value,par_shift,Sample=True)
-    new_circ = transpile(circ, backend)
     data = []
     for _ in range(16):
         job = backend.run(new_circ, shots=20)
@@ -524,7 +521,7 @@ for epoch in np.arange(1,100):
         plt.axis('off')
     plt.savefig("./Report/qgan_ICLR_-epoch-mnist-{}-generated-images".format(epoch))
     #plt.show()
-    with open('new_qgan_results_mnis_epoch_ICLR_{}.txt'.format(epoch), 'w') as file:
+    with open('./Report/new_qgan_results_mnis_epoch_ICLR_{}.txt'.format(epoch), 'w') as file:
         file.write("Tracked KL Divergence\n")
         file.write(str(tracked_kl_div_1)+"\n")
         file.write("Loss Of Generator\n")
